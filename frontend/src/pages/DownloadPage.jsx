@@ -6,6 +6,7 @@ const DownloadPage = () => {
     const { token } = useParams();
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [timeLeft, setTimeLeft] = useState("");
 
     useEffect(() => {
         axios.get(`http://10.46.47.10:5000/api/files/info/${token}`)
@@ -18,6 +19,29 @@ const DownloadPage = () => {
                 setLoading(false);
             });
     }, [token]);
+    useEffect(() => {
+        if (!file?.expiresAt) return;
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const expiry = new Date(file.expiresAt);
+            const diff = expiry - now;
+
+            if (diff <= 0) {
+                setTimeLeft("expired");
+                clearInterval(interval);
+                return;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+
+            setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [file]);
 
     const getFileIcon = (type) => {
         if (!type) return "📁";
@@ -136,11 +160,19 @@ const DownloadPage = () => {
                     <p>📦 <b>Size:</b> {(file?.fileSize / 1024).toFixed(2)} KB</p>
                     <p>📂 <b>Type:</b> {file?.fileType}</p>
                     <p>📅 <b>Date:</b> {new Date(file?.uploadedAt).toLocaleString()}</p>
+                    <p>
+                        ⏳ <b>Expires in:</b> {
+                            timeLeft === "expired"
+                                ? "❌ Expired"
+                                : timeLeft || "Loading..."
+                        }
+                    </p>
                 </div>
 
                 {/* Button */}
                 <button
                     onClick={handleDownload}
+                    disabled={timeLeft === "expired"}
                     style={{
                         width: '100%',
                         marginTop: '20px',

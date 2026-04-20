@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import SharedFile from './pages/SharedFile';
 import DownloadPage from './pages/DownloadPage';
+import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);

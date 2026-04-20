@@ -228,7 +228,8 @@ const getSharedFileInfo = async (req, res) => {
             fileSize: file.size,
             fileType: file.mimetype,
             uploadedBy: file.owner?.username || file.owner?.name || file.owner?.email,
-            uploadedAt: file.createdAt
+            uploadedAt: file.createdAt,
+            expiresAt: file.expirationDate
         });
 
     } catch (err) {

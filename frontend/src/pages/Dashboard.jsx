@@ -107,24 +107,37 @@ const Dashboard = () => {
 
   const handleShare = async (fileId) => {
     try {
-      const expiresInHours = prompt('Enter expiration in hours (leave blank for no expiration):', '');
+      const expiresInHours = prompt(
+        'Enter expiration in hours (leave blank for no expiration):',
+        ''
+      );
+
       const payload = expiresInHours ? { expiresInHours } : {};
 
       const { data } = await api.post(`/files/${fileId}/share`, payload);
-      fetchFiles(); // Update UI
+
+      fetchFiles(); // refresh UI
 
       const link = data.shareUrl;
 
-      if (navigator.clipboard && window.isSecureContext) {
+      // 🔥 FORCE COPY (works everywhere)
+      try {
         await navigator.clipboard.writeText(link);
-        alert('Link copied to clipboard!\n' + link);
-      } else {
-        prompt('Copy this link:', link);
+        alert("✅ Link copied!");
+      } catch (err) {
+        const tempInput = document.createElement("input");
+        tempInput.value = link;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+
+        alert("✅ Link copied!");
       }
 
     } catch (error) {
       console.error('Share failed:', error);
-      alert('Share failed');
+      alert('❌ Share failed');
     }
   };
 
@@ -146,7 +159,7 @@ const Dashboard = () => {
       >
         <UploadCloud size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
         <h3>Drag & Drop Files Here</h3>
-        <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>or click to browse (Max 50MB)</p>
+        <p style={{ color: '#0f1d35ff', marginTop: '0.5rem' }}>or click to browse (Max 50MB)</p>
 
         <input
           type="file"
@@ -171,14 +184,18 @@ const Dashboard = () => {
             <div className="file-header">
               <div className="file-info">
                 <h3>{file.originalName}</h3>
-                <p>{formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString()}</p>
+                <p>{formatSize(file.size)} • {new Date(file.createdAt).toLocaleString()}</p>
               </div>
             </div>
 
             {file.isPublic && file.shareToken && (
               <div className="share-link-container">
                 <LinkIcon size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                <span>Shared (Expires: {file.expirationDate ? new Date(file.expirationDate).toLocaleString() : 'Never'})</span>
+                <span>
+                  Shared (Expires: {file.expirationDate
+                    ? new Date(file.expirationDate).toLocaleString()
+                    : 'Never'})
+                </span>
               </div>
             )}
 
