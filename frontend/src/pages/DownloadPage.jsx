@@ -14,16 +14,32 @@ const DownloadPage = () => {
                 setLoading(false);
             })
             .catch(() => {
-                setLoading(false);
                 setFile("error");
+                setLoading(false);
             });
     }, [token]);
 
-    const handleDownload = () => {
-        window.open(`http://10.46.47.10:5000/api/files/shared/${token}`);
+    const getFileIcon = (type) => {
+        if (!type) return "📁";
+
+        if (type.startsWith("image")) return "🖼️";
+        if (type === "application/pdf") return "📄";
+        if (type.includes("zip") || type.includes("rar")) return "📦";
+        if (type.startsWith("audio")) return "🎵";
+        if (type.startsWith("video")) return "🎬";
+
+        return "📁";
     };
 
-    // 🔄 Loading UI
+    const handleDownload = () => {
+        window.open(
+            `http://10.46.47.10:5000/api/files/shared/${token}`,
+            "_blank",
+            "noopener,noreferrer"
+        );
+    };
+
+    // 🔄 Loading
     if (loading) {
         return (
             <div style={{
@@ -31,13 +47,15 @@ const DownloadPage = () => {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                background: '#0f172a',
-                color: 'white'
+                background: '#010e1cff',
+                color: '#111827'
             }}>
                 <h2>⏳ Loading File...</h2>
             </div>
         );
     }
+
+    // ❌ Error
     if (file === "error") {
         return (
             <div style={{
@@ -45,8 +63,8 @@ const DownloadPage = () => {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                background: '#10c319d3',
-                color: 'white'
+                background: '#020617',
+                color: '#ef4444'
             }}>
                 <h2>❌ Invalid or Expired Link</h2>
             </div>
@@ -59,69 +77,81 @@ const DownloadPage = () => {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            background: 'radial-gradient(circle at top left, #1e293b, #020617)'
+            background: 'linear-gradient(135deg, #7317eceb, #f45c69ff)',
+            backgroundSize: '200% 200%',
+            animation: 'gradientFlow 20s ease infinite'
         }}>
+
+            {/* Card */}
             <div style={{
-                backdropFilter: 'blur(20px)',
-                background: 'rgba(172, 22, 213, 0.93)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(18px)',
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.2)',
                 padding: '30px',
                 borderRadius: '20px',
                 width: '420px',
-                color: 'white',
-                boxShadow: '0 0 40px rgba(27, 133, 77, 0.49), 0 20px 60px rgba(190, 57, 242, 0.6)'
+                color: '#ffffff',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
             }}>
 
                 {/* File Name */}
-                <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    📄 {file.fileName}
+                <h2 style={{
+                    textAlign: 'center',
+                    marginBottom: '20px',
+                    fontWeight: '600',
+                    fontSize: '22px'
+                }}>
+                    📄 {file?.fileName}
                 </h2>
 
-                {/* Preview Section */}
-                {file?.fileType?.startsWith("image") && (
-                    <img
-                        src={`http://10.46.47.10:5000/api/files/shared/${token}`}
-                        alt="preview"
-                        style={{
-                            width: '100%',
-                            height: '200px',
-                            objectFit: 'cover',
-                            borderRadius: '12px',
-                            marginBottom: '15px',
-                            boxShadow: '0 10px 20px rgba(0,0,0,0.4)'
-                        }}
-                    />
-                )}
-
-                {file?.fileType === "application/pdf" && (
-                    <iframe
-                        src={`http://10.46.47.10:5000/api/files/shared/${token}`}
-                        style={{ width: '100%', height: '200px', borderRadius: '10px' }}
-                    />
-                )}
-
-                {/* File Info */}
-                <div style={{ marginTop: '15px' }}>
-                    <p>👤 <b>Sender:</b> {file.uploadedBy}</p>
-                    <p>📦 <b>Size:</b> {(file.fileSize / 1024).toFixed(2)} KB</p>
-                    <p>📂 <b>Type:</b> {file.fileType}</p>
-                    <p>📅 <b>Date:</b> {new Date(file.uploadedAt).toLocaleString()}</p>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    marginBottom: '20px'
+                }}>
+                    <div style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.15)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        fontSize: '40px'
+                    }}>
+                        {getFileIcon(file?.fileType)}
+                    </div>
                 </div>
 
-                {/* Download Button */}
+                {/* Preview */}
+
+
+                {/* Info */}
+                <div style={{
+                    fontSize: '14px',
+                    color: '#f1f5f9',
+                    lineHeight: '1.8'
+                }}>
+                    <p>👤 <b>Sender:</b> {file?.uploadedBy}</p>
+                    <p>📦 <b>Size:</b> {(file?.fileSize / 1024).toFixed(2)} KB</p>
+                    <p>📂 <b>Type:</b> {file?.fileType}</p>
+                    <p>📅 <b>Date:</b> {new Date(file?.uploadedAt).toLocaleString()}</p>
+                </div>
+
+                {/* Button */}
                 <button
                     onClick={handleDownload}
                     style={{
                         width: '100%',
                         marginTop: '20px',
-                        padding: '15px',
+                        padding: '14px',
                         borderRadius: '12px',
                         border: 'none',
-                        fontSize: '18px',
+                        fontSize: '16px',
                         cursor: 'pointer',
-                        background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                        background: '#111827',
                         color: 'white',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                        fontWeight: '600',
                         transition: '0.3s'
                     }}
                     onMouseOver={e => e.target.style.transform = 'scale(1.05)'}
@@ -131,6 +161,17 @@ const DownloadPage = () => {
                 </button>
 
             </div>
+
+            {/* Animation */}
+            <style>
+                {`
+            @keyframes gradientFlow {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+            `}
+            </style>
         </div>
     );
 };
