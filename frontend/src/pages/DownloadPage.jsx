@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
 const DownloadPage = () => {
     const { token } = useParams();
@@ -9,12 +9,13 @@ const DownloadPage = () => {
     const [timeLeft, setTimeLeft] = useState("");
 
     useEffect(() => {
-        axios.get(`http://10.46.47.10:5000/api/files/info/${token}`)
+        api.get(`/files/info/${token}`)
             .then(res => {
                 setFile(res.data);
                 setLoading(false);
             })
-            .catch(() => {
+            .catch(err => {
+                console.error('Error fetching file info:', err);
                 setFile("error");
                 setLoading(false);
             });
@@ -56,8 +57,10 @@ const DownloadPage = () => {
     };
 
     const handleDownload = () => {
+        // Use the API base URL to construct the download link
+        const downloadUrl = `${api.defaults.baseURL}/files/shared/${token}`;
         window.open(
-            `http://10.46.47.10:5000/api/files/shared/${token}`,
+            downloadUrl,
             "_blank",
             "noopener,noreferrer"
         );

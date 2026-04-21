@@ -81,13 +81,31 @@ const Dashboard = () => {
         responseType: 'blob',
       });
 
+      // Extract filename from Content-Disposition header if available
+      let downloadFilename = filename; // Fallback to passed filename
+      const disposition = response.headers['content-disposition'];
+      if (disposition) {
+        // Try RFC 5987 format first (filename*=UTF-8''...)
+        let match = /filename\*=UTF-8''([^;\n]*)/.exec(disposition);
+        if (match && match[1]) {
+          downloadFilename = decodeURIComponent(match[1]);
+        } else {
+          // Fallback to standard format (filename="...")
+          match = /filename[^;=\n]*=(['"]?)([^'"\n]*?)\1/i.exec(disposition);
+          if (match && match[2]) {
+            downloadFilename = match[2];
+          }
+        }
+      }
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', filename);
+      link.setAttribute('download', downloadFilename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
       alert('Download failed');

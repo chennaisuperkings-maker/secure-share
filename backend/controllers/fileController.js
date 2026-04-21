@@ -120,12 +120,13 @@ const generateShareLink = async (req, res) => {
         file.isPublic = true;
         await file.save();
 
-        console.log("NEW SHARE LINK:", `http://10.46.47.10:5173/download/${shareToken}`);
+        const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/shared/${shareToken}`;
+        console.log("NEW SHARE LINK:", shareUrl);
 
         res.json({
             shareToken,
             expirationDate,
-            shareUrl: `http://10.46.47.10:5173/download/${shareToken}`
+            shareUrl
         });
     } catch (error) {
         console.error(error);
@@ -159,8 +160,11 @@ const downloadFile = async (req, res) => {
         const encryptedBuffer = fs.readFileSync(filePath);
         const decryptedBuffer = decryptBuffer(encryptedBuffer);
 
-        res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`);
+        // Use RFC 5987 encoding for proper filename handling with special characters
+        const encodedFilename = encodeURIComponent(file.originalName);
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}; filename="${file.originalName}"`);
         res.setHeader('Content-Type', file.mimetype);
+        res.setHeader('Content-Length', decryptedBuffer.length);
         res.send(decryptedBuffer);
 
     } catch (error) {
@@ -195,8 +199,11 @@ const downloadSharedFile = async (req, res) => {
         const encryptedBuffer = fs.readFileSync(filePath);
         const decryptedBuffer = decryptBuffer(encryptedBuffer);
 
-        res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
+        // Use RFC 5987 encoding for proper filename handling with special characters
+        const encodedFilename = encodeURIComponent(file.originalName);
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}; filename="${file.originalName}"`);
         res.setHeader('Content-Type', file.mimetype);
+        res.setHeader('Content-Length', decryptedBuffer.length);
         res.send(decryptedBuffer);
 
     } catch (error) {

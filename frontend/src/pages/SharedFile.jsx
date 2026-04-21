@@ -24,21 +24,54 @@ const SharedFile = () => {
       // Extract filename from Content-Disposition header if possible
       let filename = 'shared-file';
       const disposition = response.headers['content-disposition'];
-      if (disposition && disposition.indexOf('attachment') !== -1) {
-        var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-        var matches = filenameRegex.exec(disposition);
-        if (matches != null && matches[1]) { 
-          filename = matches[1].replace(/['"]/g, '');
+      if (disposition) {
+        // Try RFC 5987 format first (filename*=UTF-8''...)
+        let match = /filename\*=UTF-8''([^;\n]*)/.exec(disposition);
+        if (match && match[1]) {
+          filename = decodeURIComponent(match[1]);
+        } else {
+          // Fallback to standard format (filename="...")
+          match = /filename[^;=\n]*=(['"]?)([^'"\n]*?)\1/i.exec(disposition);
+          if (match && match[2]) {
+            filename = match[2];
+          }
         }
       }
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // const url = window.URL.createObjectURL(new Blob([response.data]));
+      // const link = document.createElement('a');
+      // link.href = url;
+      // link.setAttribute('download', filename);
+      // document.body.appendChild(link);
+      // link.click();
+      // link.remove();
+      // window.URL.revokeObjectURL(url);
+      // ✅ NEW FIXED VERSION
+
+// Create blob with correct MIME type
+const blob = new Blob([response.data], {
+  type: response.headers['content-type'] || 'application/octet-stream'
+});
+
+// Create download URL
+const url = window.URL.createObjectURL(blob);
+
+// Create link
+const link = document.createElement('a');
+link.href = url;
+
+// Use extracted filename
+link.setAttribute('download', filename);
+
+// Trigger download
+document.body.appendChild(link);
+link.click();
+
+// Cleanup
+link.remove();
+window.URL.revokeObjectURL(url);
+
+
     } catch (err) {
       console.error(err);
       if (err.response && err.response.status === 410) {
