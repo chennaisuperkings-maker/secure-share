@@ -22,6 +22,24 @@ const fileSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    // Client-side encryption metadata
+    // IV (Initialization Vector) - 12 bytes for AES-GCM, stored as hex string
+    encryptionIv: {
+        type: String,
+        required: false,
+        description: 'Base64-encoded 12-byte IV from client-side AES-256-GCM encryption'
+    },
+    // Authentication tag - 16 bytes from AES-GCM, stored as hex string
+    encryptionAuthTag: {
+        type: String,
+        required: false,
+        description: 'Base64-encoded 16-byte auth tag from AES-256-GCM for tampering detection'
+    },
+    // For backward compatibility - whether this file was encrypted on client or server
+    encryptedOnClient: {
+        type: Boolean,
+        default: false
+    },
     shareToken: {
         type: String,
         default: null

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { UploadCloud, Download, Share2, Trash2, Link as LinkIcon } from 'lucide-react';
+import { generateRandomKey, encryptFile, decryptFile, bytesToHex, hexToBytes } from '../utils/encryption';
 
 const Dashboard = () => {
   const [files, setFiles] = useState([]);
@@ -31,13 +32,46 @@ const Dashboard = () => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
+      // 🔐 STEP 1: Generate encryption key
+      console.log('🔐 [STEP 1] Generating AES-256 encryption key...');
+      const encryptionKey = await generateRandomKey();
+      
+      // 🔐 STEP 2: Encrypt file on client-side (BEFORE upload)
+      console.log('🔐 [STEP 2] Encrypting file with AES-256-GCM...');
+      const encrypted = await encryptFile(file, encryptionKey);
+      
+      if (!encrypted || !encrypted.ciphertext || !encrypted.iv || !encrypted.authTag) {
+        throw new Error('Encryption failed. Upload blocked.');
+      }
+      
+      console.log('✅ [STEP 2] Encryption successful');
+      
+      // 🔐 STEP 3: Convert encryption artifacts to base64 for transmission
+      const ivBase64 = btoa(String.fromCharCode(...encrypted.iv));
+      const authTagBase64 = btoa(String.fromCharCode(...encrypted.authTag));
+      
+      // Store encryption key in sessionStorage for later decryption
+      // ⚠️  WARNING: In production, use secure key exchange (e.g., derive from password)
+      const keyExport = await crypto.subtle.exportKey('raw', encryptionKey);
+      const keyBase64 = btoa(String.fromCharCode(...new Uint8Array(keyExport)));
+      sessionStorage.setItem(`fileKey_${file.name}`, keyBase64);
+      
+      // 🔐 STEP 4: Create FormData with encrypted file
+      const formData = new FormData();
+      // Send encrypted buffer as file
+      formData.append('file', new Blob([encrypted.ciphertext], { type: 'application/octet-stream' }), file.name);
+      // Send encryption metadata
+      formData.append('encryptionIv', ivBase64);
+      formData.append('encryptionAuthTag', authTagBase64);
+      
+      // added this line by chatgpt
+      formData.append('encryptedOnClient', true);
+      // 🔐 STEP 5: Upload encrypted file
+      console.log('📤 [STEP 5] Uploading encrypted file...');
       await api.post('/files/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -48,12 +82,15 @@ const Dashboard = () => {
         },
       });
 
+      console.log('✅ [SUCCESS] Encrypted file uploaded');
+      
       // Reset input and fetch files
       if (fileInputRef.current) fileInputRef.current.value = '';
       fetchFiles();
+      alert('File encrypted and uploaded successfully! 🔒');
     } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload failed');
+      console.error('❌ Upload failed:', error);
+      alert(`Upload failed: ${error.message}`);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
